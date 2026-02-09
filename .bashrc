@@ -56,9 +56,51 @@ if [ -n "$force_color_prompt" ]; then
     fi
 fi
 
-# function to parse the current git branch
-parse_git_branch() {
-    git branch 2> /dev/null | sed -e '/^[^*]/d' -e 's/* \(.*\)/[\1]/'
+# get current branch in git repo
+function parse_git_branch() {
+	BRANCH=`git branch 2> /dev/null | sed -e '/^[^*]/d' -e 's/* \(.*\)/\1/'`
+	if [ ! "${BRANCH}" == "" ]
+	then
+		STAT=`parse_git_dirty`
+		echo "[${BRANCH}${STAT}]"
+	else
+		echo ""
+	fi
+}
+
+# get current status of git repo
+function parse_git_dirty {
+	status=`git status 2>&1 | tee`
+	dirty=`echo -n "${status}" 2> /dev/null | grep "modified:" &> /dev/null; echo "$?"`
+	untracked=`echo -n "${status}" 2> /dev/null | grep "Untracked files" &> /dev/null; echo "$?"`
+	ahead=`echo -n "${status}" 2> /dev/null | grep "Your branch is ahead of" &> /dev/null; echo "$?"`
+	newfile=`echo -n "${status}" 2> /dev/null | grep "new file:" &> /dev/null; echo "$?"`
+	renamed=`echo -n "${status}" 2> /dev/null | grep "renamed:" &> /dev/null; echo "$?"`
+	deleted=`echo -n "${status}" 2> /dev/null | grep "deleted:" &> /dev/null; echo "$?"`
+	bits=''
+	if [ "${renamed}" == "0" ]; then
+		bits=">${bits}"
+	fi
+	if [ "${ahead}" == "0" ]; then
+		bits="*${bits}"
+	fi
+	if [ "${newfile}" == "0" ]; then
+		bits="+${bits}"
+	fi
+	if [ "${untracked}" == "0" ]; then
+		bits="?${bits}"
+	fi
+	if [ "${deleted}" == "0" ]; then
+		bits="x${bits}"
+	fi
+	if [ "${dirty}" == "0" ]; then
+		bits="!${bits}"
+	fi
+	if [ ! "${bits}" == "" ]; then
+		echo " ${bits}"
+	else
+		echo ""
+	fi
 }
 
 # function to find the current Linux distribution
@@ -66,12 +108,19 @@ find_distro() {
     awk -F= '/^ID(_LIKE)?=/{gsub("\"","");print " <" $2 "> "}' /etc/os-release | head -n1
 }
 
+# function to print the return value of the last command if it is non-zero
+
+function nonzero_return() {
+	RETVAL=$?
+	[ $RETVAL -ne 0 ] && echo "$RETVAL"
+}
+
 # debian_chroot is used in the prompt to identify the chroot you work in.  It is set to the name of the current chroot, if any.  Otherwise, it is unset.
 
 if [ "$color_prompt" = yes ]; then
-    PS1='\[\e[38;5;216m\]\t\[\e[38;5;210m\]$(find_distro)${debian_chroot:+($debian_chroot)}\[\e[38;5;47m\]\u\[\e[38;5;156m\]@\[\e[38;5;227m\]\h \[\e[38;5;77m\]\s\n\[\033[0;31m\]$(parse_git_branch)\[\033[01;34m\]\w\[\033[00m\]\$ '
+    PS1='\[\e[38;5;216m\]\A\[\e[38;5;210m\]$(find_distro)${debian_chroot:+($debian_chroot)}\[\e[38;5;47m\]\u\[\e[38;5;156m\]@\[\e[38;5;227m\]\h \[\e[38;5;77m\]\s-\v\n\[\033[0;31m\]$(parse_git_branch)\[\033[01;34m\]\w\[\033[00m\]\$ '
 else
-    PS1='$(find_distro)${debian_chroot:+($debian_chroot)}\u@\h:$(parse_git_branch)\w\$ '
+    PS1='\A$(find_distro)${debian_chroot:+($debian_chroot)}\u@\h \s-\v\n$(parse_git_branch)\w\$ '
 fi
 unset color_prompt force_color_prompt
 
