@@ -61,12 +61,17 @@ parse_git_branch() {
     git branch 2> /dev/null | sed -e '/^[^*]/d' -e 's/* \(.*\)/[\1]/'
 }
 
+# function to find the current Linux distribution
+find_distro() {
+    awk -F= '/^ID(_LIKE)?=/{gsub("\"","");print "<" $2 ">"}' /etc/os-release | head -n1
+}
+
 # debian_chroot is used in the prompt to identify the chroot you work in.  It is set to the name of the current chroot, if any.  Otherwise, it is unset.
 
 if [ "$color_prompt" = yes ]; then
-    PS1='${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[0;31m\]$(parse_git_branch)\[\033[01;34m\]\w\[\033[00m\]\$ '
+    PS1='\[\e[38;5;210m\]$(find_distro)${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[0;31m\]$(parse_git_branch)\[\033[01;34m\]\w\[\033[00m\]\$ '
 else
-    PS1='${debian_chroot:+($debian_chroot)}\u@\h:$(parse_git_branch)\w\$ '
+    PS1='$(find_distro)${debian_chroot:+($debian_chroot)}\u@\h:$(parse_git_branch)\w\$ '
 fi
 unset color_prompt force_color_prompt
 
