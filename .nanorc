@@ -1,0 +1,19 @@
+set autoindent
+
+set linenumbers
+
+set brackets ""’)>]}"
+
+set matchbrackets "()[]{}<>"
+
+# Mouse support with gpm installed
+set mouse
+
+set smarthome
+
+set softwrap
+
+set tabsize 4
+
+set tabstospaces
+
